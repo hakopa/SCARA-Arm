@@ -43,7 +43,7 @@ public class Drawing
     {
         PointXY new_point = new PointXY(x,y,pen);
         path.add(new_point);
-        UI.printf("Pioint added.x=%f y=%f pen=%b New path size - %d\n",
+        UI.printf("Point added.x=%f y=%f pen=%b New path size - %d\n",
               x,y,pen,path.size());
     }
     
