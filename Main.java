@@ -1,8 +1,11 @@
 package ToWebSite;
 
 import java.awt.Color;
+import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
-import java.net.ServerSocket;
+
+import javax.imageio.ImageIO;
 
 /* Code for Assignment ??
  * Name:
@@ -29,6 +32,7 @@ public class Main{
     /**      */
     public Main(){
         UI.initialise();
+        UI.addButton("Clear", () -> {drawing = new Drawing();});
         UI.addButton("xy to angles", this::inverse);
         UI.addButton("Enter path XY", this::enter_path_xy);
         UI.addButton("Save path XY", this::save_xy);
@@ -36,6 +40,9 @@ public class Main{
         UI.addButton("Save path Ang", this::save_ang);
         UI.addButton("Load path Ang:Play", this::load_ang);
         UI.addButton("Excecute", this::excecute);
+        UI.addButton("Draw Circle", this::circle);
+        UI.addButton("Draw Square", this::square);
+        UI.addButton("Draw Pic", this::pic);
 
        // UI.addButton("Quit", UI::quit);
         UI.setMouseMotionListener(this::doMouse);
@@ -63,6 +70,56 @@ public class Main{
 
         }
 
+    }
+
+    public void circle() {
+    	int x = 330;
+    	int y = 125;
+    	int r = 20;
+    	for(int i = 0; i <= 380; i+=20) {
+    		drawing.add_point_to_path(x+r*Math.cos(Math.toRadians(i)), y+r*Math.sin(Math.toRadians(i)), true);
+    	}
+    }
+
+    public void square() {
+    	drawing.add_point_to_path(330, 125, true);
+    	drawing.add_point_to_path(330+50, 125, true);
+    	drawing.add_point_to_path(330+50, 125+50, true);
+    	drawing.add_point_to_path(330, 125+50, true);
+    	drawing.add_point_to_path(330, 125, true);
+    }
+
+    public void pic() {
+    	String file = UIFileChooser.open();
+    	if(file == null) return;
+    	try {
+			BufferedImage bi = ImageIO.read(new File(file));
+			UI.drawImage(bi, 0, 0);
+			bi = edge(bi);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+    }
+
+    public BufferedImage edge(BufferedImage in) {
+    	BufferedImage out = new BufferedImage(in.getWidth(), in.getHeight(), in.getType());
+    	for(int x = 1; x < in.getWidth()-1; x++) {
+    		for(int y = 1; y < in.getHeight()-1; y++) {
+    			int tot = 0;
+    			for(int i = x-1; i <= x+1; i++) {
+    				for(int j = y-1; j <= y+1; j++) {
+    					int R = 255-new Color(in.getRGB(i, j)).getRed();
+    					int G = 255-new Color(in.getRGB(i, j)).getGreen();
+    					int B = 255-new Color(in.getRGB(i, j)).getBlue();
+    					tot += (x==i&&y==j?8:-1)*(R+G+B)/3;
+    				}
+    			}
+    			out.setRGB(x, y, new Color(tot).getRGB());
+    		}
+    	}
+    	UI.drawImage(out, 0, 0);
+    	return out;
     }
 
     public void doMouse(String action, double x, double y) {
@@ -182,7 +239,7 @@ public class Main{
     }
 
     public static void main(String[] args){
-        Main obj = new Main();
+        new Main();
     }
 
 }

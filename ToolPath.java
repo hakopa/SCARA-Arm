@@ -1,6 +1,14 @@
 package ToWebSite;
 
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.util.ArrayList;
+
 /**
  * ToolPath stores motor contol signals (pwm)
  * and motor angles
@@ -11,18 +19,6 @@ package ToWebSite;
  * @1000000.0
  */
 import ecs100.UI;
-import java.util.*;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-import java.io.BufferedReader;
-import java.io.FileInputStream;
-import java.io.FileReader;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 
 
 public class ToolPath
@@ -112,11 +108,12 @@ public class ToolPath
             arm.set_angles(theta1_vector.get(i),theta2_vector.get(i));
             pwm1_vector.add(arm.get_pwm1());
             pwm2_vector.add(arm.get_pwm2());
-            pwm3_vector.add(pen_vector.get(i) == 1 ? 1100 : 1900);
+            pwm3_vector.add(pen_vector.get(i) == 1 || !(i == theta1_vector.size()-1) ? 1100 : 1900);
         }
     }
 
     public void save_PWM(String fname) {
+    	if(fname == null) return;
     	try {
             //Whatever the file path is.
             File statText = new File(fname);
