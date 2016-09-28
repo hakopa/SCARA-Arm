@@ -34,5 +34,9 @@ package ToWebSite;
         public void set_pen(boolean peni){
             pen_down=peni;
         }
+        @Override
+        public boolean equals(Object o) {
+        	return o instanceof PointXY && ((PointXY)o).get_x() == x && ((PointXY)o).get_y() == y && ((PointXY)o).get_pen() == pen_down;
+        }
 
     }
