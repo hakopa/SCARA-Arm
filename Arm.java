@@ -201,6 +201,7 @@ public class Arm {
             return;
         }
 
+        if(Math.hypot(xj1-xj2, yj1-yj2)> 0.9*2*r) valid_state = false;
         //UI.printf("xt:%3.1f, yt:%3.1f\n",xt,yt);
         //UI.printf("theta1:%3.1f, theta2:%3.1f\n",theta1*180/Math.PI,theta2*180/Math.PI);
         return;
