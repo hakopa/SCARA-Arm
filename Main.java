@@ -38,6 +38,8 @@ public class Main {
 		UI.initialise();
 		UI.addButton("Clear", () -> {
 			drawing = new Drawing();
+			tool_path = new ToolPath();
+			drawing.draw();
 		});
 		UI.addButton("xy to angles", this::inverse);
 		UI.addButton("Enter path XY", this::enter_path_xy);
@@ -48,7 +50,8 @@ public class Main {
 		UI.addButton("Excecute", this::excecute);
 		UI.addButton("Draw Circle", this::circle);
 		UI.addButton("Draw Square", this::square);
-		UI.addButton("Draw Pic", this::pic);
+		UI.addButton("Draw Image", this::pic);
+		UI.addButton("Draw Image 2", this::pic2);
 
 		// UI.addButton("Quit", UI::quit);
 		UI.setMouseMotionListener(this::doMouse);
@@ -93,6 +96,51 @@ public class Main {
 		drawing.add_point_to_path(330, 125, true);
 	}
 
+	public void pic2() {
+		UI.clearGraphics();
+		String file = UIFileChooser.open();
+		if(file == null) return;
+		try {
+			BufferedImage bi = ImageIO.read(new File(file));
+
+			double xOrigin = 230;
+			double yOrigin = 110;
+			double dx = 450;
+			double dy = 180;
+			double s1 = (dx-xOrigin)/bi.getWidth();
+			double s2 = (dy-yOrigin)/bi.getHeight();
+			double scale = s1<s2 ? s1 : s2;
+
+			UI.drawImage(bi, 0, 0);
+			BufferedImage out = new BufferedImage(bi.getWidth(), bi.getHeight(), bi.getType());
+			for(int y = 0; y < bi.getHeight(); y++) {
+				boolean penDown = false;
+				for(int x = 0; x < bi.getWidth(); x++) {
+					if(y%2 == 1) {
+						out.setRGB(x, y, 0xFFFFFF);
+						continue;
+					}
+					if(shouldPenBeDown(bi, x, y) != penDown) {
+						penDown = !penDown;
+						drawing.add_point_to_path(xOrigin+x*scale, yOrigin+y*scale, !penDown);
+					}
+					out.setRGB(x, y, penDown ? 0x0 : 0xFFFFFF);
+				}
+			}
+			UI.clearGraphics();
+			UI.drawImage(out, 0, 0);
+
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+	}
+
+	public boolean shouldPenBeDown(BufferedImage in, int x, int y) {
+		Color c = new Color(in.getRGB(x, y));
+		return (c.getRed()+c.getGreen()+c.getBlue())/3 < 128;
+	}
+
 	public void pic() {
 		UI.clearGraphics();
 		String file = UIFileChooser.open();
@@ -101,14 +149,44 @@ public class Main {
 		try {
 			BufferedImage bi = ImageIO.read(new File(file));
 			UI.drawImage(bi, 0, 0);
-			UI.clearGraphics();
+			//UI.clearGraphics();
+			bi = resize(bi);
 			bi = edge(bi);
-			bi = filterDots(bi);
+			//bi = filterDots(bi);
 			UI.drawImage(bi, 0, 0);
+			convertToLines(bi);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 
+	}
+
+	public BufferedImage resize(BufferedImage in) {
+		double scale = 200d/in.getWidth() < 200d/in.getHeight() ? 200d/in.getWidth() : 200d/in.getHeight();
+		BufferedImage out = new BufferedImage((int)(in.getWidth()*scale), (int)(in.getHeight()*scale), in.getType());
+		for(int x = 0; x < out.getWidth(); x++) {
+			for(int y = 0; y < out.getHeight(); y++) {
+				int R = 0;
+				int G = 0;
+				int B = 0;
+				int i = 0;
+				int j = 0;
+				for(i = (int)(x/scale); i < x+(1/scale); i++) {
+					for(j = (int)(y/scale); j < y+(1/scale); j++) {
+						R += (in.getRGB(i, j) & 0xFF0000) >> 32;
+						G += (in.getRGB(i, j) & 0xFF00) >> 16;
+						B += (in.getRGB(i, j) & 0xFF);
+					}
+				}
+				if(i == 0 || j == 0) return in;
+				R /= i*j;
+				G /= i*j;
+				B /= i*j;
+				int rgb = (R << 32)+(G << 16)+B;
+				out.setRGB(x, y, rgb);
+			}
+		}
+		return out;
 	}
 
 	public BufferedImage edge(BufferedImage in) {
@@ -159,7 +237,6 @@ public class Main {
 	public int countAdjacentPixels(BufferedImage in, int x, int y) {
 		Set<PointXY> visited = new HashSet<PointXY>();
 		Stack<PointXY> todo = new Stack<PointXY>();
-		System.out.println(in.getRGB(x, y) & 0xFF);
 		if ((in.getRGB(x, y) & 0xFF) > 128)
 			return 0;
 		todo.push(new PointXY(x, y, true));
@@ -184,7 +261,7 @@ public class Main {
 
 		return count;// AdjacentPixels(in, x, y, null);
 	}
-	
+
 	@SuppressWarnings("rawtypes")
 	public boolean contains(Set set, Object o) {
 		for(Object s : set) {
@@ -231,6 +308,39 @@ public class Main {
 				todo.push(new PointXY(x, y - 1, true));
 		}
 	}
+	public void convertToLines(BufferedImage in) {
+
+		double xOrigin = 230;
+		double yOrigin = 110;
+		double dx = 450;
+		double dy = 180;
+		double s1 = (dx-xOrigin)/in.getWidth();
+		double s2 = (dy-yOrigin)/in.getHeight();
+		double scale = s1<s2 ? s1 : s2;
+
+		Set<PointXY> visited = new HashSet<PointXY>();
+		for(int x = 0; x < in.getWidth(); x++) {
+			for(int y = 0; y < in.getHeight(); y++) {
+				PointXY pixel = new PointXY(x, y, false);
+				if((in.getRGB(x, y) & 0xFF) < 128 && !contains(visited, pixel)) {
+					Stack<PointXY> todo = new Stack<PointXY>();
+					todo.add(pixel);
+					while(!todo.isEmpty()) {
+						PointXY p = todo.pop();
+						int i = (int)p.get_x();
+						int j = (int)p.get_y();
+						if(i+1 < in.getWidth() && (in.getRGB(i+1, j) & 0xFF) < 128 && !contains(visited, new PointXY(i+1, j, true))) todo.push(new PointXY(i+1, j, true));
+						else if(i-1 >= 0 && (in.getRGB(i-1, j) & 0xFF) < 128 && !contains(visited, new PointXY(i-1, j, true))) todo.push(new PointXY(i-1, j, true));
+						else if(j+1 < in.getHeight() && (in.getRGB(i, j+1) & 0xFF) < 128 && !contains(visited, new PointXY(i, j+1, true))) todo.push(new PointXY(i, j+1, true));
+						else if(j-1 >= 0 && (in.getRGB(i, j-1) & 0xFF) < 128 && !contains(visited, new PointXY(i, j-1, true))) todo.push(new PointXY(i, j-1, true));
+						drawing.add_point_to_path(xOrigin+p.get_x()*scale, yOrigin+p.get_y()*scale, p.get_pen());
+						visited.add(p);
+					}
+				}
+			}
+		}
+	}
+
 
 	public void doMouse(String action, double x, double y) {
 		// UI.printf("Mouse Click:%s, state:%d x:%3.1f y:%3.1f\n",

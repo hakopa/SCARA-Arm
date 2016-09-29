@@ -66,7 +66,7 @@ public class ToolPath
                 arm.inverseKinematic(x, y);
                 theta1_vector.add(arm.get_theta1()*180/Math.PI);
                 theta2_vector.add(arm.get_theta2()*180/Math.PI);
-                if (p0.get_pen()){
+                if (p1.get_pen()){
                   pen_vector.add(1);
                 } else {
                   pen_vector.add(0);
