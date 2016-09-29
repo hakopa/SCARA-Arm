@@ -103,7 +103,7 @@ public class Main {
 		try {
 			BufferedImage bi = ImageIO.read(new File(file));
 
-			double xOrigin = 230;
+			double xOrigin = 250;
 			double yOrigin = 110;
 			double dx = 450;
 			double dy = 180;
@@ -310,10 +310,10 @@ public class Main {
 	}
 	public void convertToLines(BufferedImage in) {
 
-		double xOrigin = 230;
+		double xOrigin = 300;
 		double yOrigin = 110;
 		double dx = 450;
-		double dy = 180;
+		double dy = 170;
 		double s1 = (dx-xOrigin)/in.getWidth();
 		double s2 = (dy-yOrigin)/in.getHeight();
 		double scale = s1<s2 ? s1 : s2;
@@ -329,16 +329,24 @@ public class Main {
 						PointXY p = todo.pop();
 						int i = (int)p.get_x();
 						int j = (int)p.get_y();
-						if(i+1 < in.getWidth() && (in.getRGB(i+1, j) & 0xFF) < 128 && !contains(visited, new PointXY(i+1, j, true))) todo.push(new PointXY(i+1, j, true));
-						else if(i-1 >= 0 && (in.getRGB(i-1, j) & 0xFF) < 128 && !contains(visited, new PointXY(i-1, j, true))) todo.push(new PointXY(i-1, j, true));
-						else if(j+1 < in.getHeight() && (in.getRGB(i, j+1) & 0xFF) < 128 && !contains(visited, new PointXY(i, j+1, true))) todo.push(new PointXY(i, j+1, true));
-						else if(j-1 >= 0 && (in.getRGB(i, j-1) & 0xFF) < 128 && !contains(visited, new PointXY(i, j-1, true))) todo.push(new PointXY(i, j-1, true));
+							 if(checkValid(i+1, j+1, in, visited)) todo.push(new PointXY(i+1, j+1, true));
+						else if(checkValid(i+1, j+0, in, visited)) todo.push(new PointXY(i+1, j+0, true));
+						else if(checkValid(i+1, j-1, in, visited)) todo.push(new PointXY(i+1, j-1, true));
+						else if(checkValid(i-1, j+1, in, visited)) todo.push(new PointXY(i-1, j+1, true));
+						else if(checkValid(i-1, j+0, in, visited)) todo.push(new PointXY(i-1, j+0, true));
+						else if(checkValid(i-1, j-1, in, visited)) todo.push(new PointXY(i-1, j-1, true));
+						else if(checkValid(i+0, j+1, in, visited)) todo.push(new PointXY(i+0, j+1, true));
+						else if(checkValid(i+0, j-1, in, visited)) todo.push(new PointXY(i+0, j-1, true));
 						drawing.add_point_to_path(xOrigin+p.get_x()*scale, yOrigin+p.get_y()*scale, p.get_pen());
 						visited.add(p);
 					}
 				}
 			}
 		}
+	}
+
+	public boolean checkValid(int x, int y, BufferedImage in, Set<PointXY> set) {
+		return x >= 0 && x < in.getWidth() && y >= 0 && y < in.getHeight() && (in.getRGB(x, y) & 0xFF) < 128 && !contains(set, new PointXY(x, y, true));
 	}
 
 
