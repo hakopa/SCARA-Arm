@@ -32,7 +32,13 @@ public class Main {
 						// 2 - enter path. Each click adds point
 						// 3 - enter path pause. Click does not add the point to
 						// the path
-
+	
+	
+	double xOrigin = 300;
+	double yOrigin = 90;
+	double dx = 450;
+	double dy = 150;
+	
 	/**      */
 	public Main() {
 		UI.initialise();
@@ -103,10 +109,10 @@ public class Main {
 		try {
 			BufferedImage bi = ImageIO.read(new File(file));
 
-			double xOrigin = 250;
-			double yOrigin = 110;
+			/*double xOrigin = 300;
+			double yOrigin = 100;
 			double dx = 450;
-			double dy = 180;
+			double dy = 160;*/
 			double s1 = (dx-xOrigin)/bi.getWidth();
 			double s2 = (dy-yOrigin)/bi.getHeight();
 			double scale = s1<s2 ? s1 : s2;
@@ -152,7 +158,7 @@ public class Main {
 			//UI.clearGraphics();
 			bi = resize(bi);
 			bi = edge(bi);
-			//bi = filterDots(bi);
+			bi = filterDots(bi);
 			UI.drawImage(bi, 0, 0);
 			convertToLines(bi);
 		} catch (IOException e) {
@@ -310,10 +316,10 @@ public class Main {
 	}
 	public void convertToLines(BufferedImage in) {
 
-		double xOrigin = 300;
+		/*double xOrigin = 300;
 		double yOrigin = 110;
 		double dx = 450;
-		double dy = 170;
+		double dy = 170;*/
 		double s1 = (dx-xOrigin)/in.getWidth();
 		double s2 = (dy-yOrigin)/in.getHeight();
 		double scale = s1<s2 ? s1 : s2;
