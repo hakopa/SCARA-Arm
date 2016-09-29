@@ -39,6 +39,8 @@ public class Main {
 	double dx = 450;
 	double dy = 150;
 	
+	boolean removeNoise = false;
+	
 	/**      */
 	public Main() {
 		UI.initialise();
@@ -46,6 +48,7 @@ public class Main {
 			drawing = new Drawing();
 			tool_path = new ToolPath();
 			drawing.draw();
+			UI.clearPanes();
 		});
 		UI.addButton("xy to angles", this::inverse);
 		UI.addButton("Enter path XY", this::enter_path_xy);
@@ -57,7 +60,9 @@ public class Main {
 		UI.addButton("Draw Circle", this::circle);
 		UI.addButton("Draw Square", this::square);
 		UI.addButton("Draw Image", this::pic);
+		UI.addSlider("Remove Noise", 0, 1, 0, (i) -> {removeNoise = i == 1;});
 		UI.addButton("Draw Image 2", this::pic2);
+		
 
 		// UI.addButton("Quit", UI::quit);
 		UI.setMouseMotionListener(this::doMouse);
@@ -92,6 +97,7 @@ public class Main {
 		for (int i = 0; i <= 380; i += 20) {
 			drawing.add_point_to_path(x + r * Math.cos(Math.toRadians(i)), y + r * Math.sin(Math.toRadians(i)), true);
 		}
+		tool_path.setNumSteps(50);
 	}
 
 	public void square() {
@@ -100,6 +106,7 @@ public class Main {
 		drawing.add_point_to_path(330 + 50, 125 + 50, true);
 		drawing.add_point_to_path(330, 125 + 50, true);
 		drawing.add_point_to_path(330, 125, true);
+		tool_path.setNumSteps(50);
 	}
 
 	public void pic2() {
@@ -107,6 +114,8 @@ public class Main {
 		String file = UIFileChooser.open();
 		if(file == null) return;
 		try {
+			int steps = drawing.get_path_size();
+			UI.println("Loading...");
 			BufferedImage bi = ImageIO.read(new File(file));
 
 			/*double xOrigin = 300;
@@ -135,7 +144,9 @@ public class Main {
 			}
 			UI.clearGraphics();
 			UI.drawImage(out, 0, 0);
-
+			tool_path.setNumSteps(50);
+			int points = drawing.get_drawing_size();
+			UI.println("Drawn " + (points-steps) + "points");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -153,14 +164,18 @@ public class Main {
 		if (file == null)
 			return;
 		try {
+			int steps = drawing.get_path_size();
+			UI.println("Loading...");
 			BufferedImage bi = ImageIO.read(new File(file));
 			UI.drawImage(bi, 0, 0);
 			//UI.clearGraphics();
 			bi = resize(bi);
 			bi = edge(bi);
-			bi = filterDots(bi);
+			if(removeNoise) bi = filterDots(bi);
 			UI.drawImage(bi, 0, 0);
 			convertToLines(bi);
+			tool_path.setNumSteps(1);
+			UI.println("Drawn " + (drawing.get_drawing_size()-steps) + "points");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -221,7 +236,7 @@ public class Main {
 		for (int x = 0; x < out.getWidth(); x++) {
 			for (int y = 0; y < out.getHeight(); y++) {
 				int count = countAdjacentPixels(out, x, y);
-				if (count < 5 && count > 0) {
+				if (count < 10 && count > 0) {
 					removeLine(out, x, y);
 				}
 			}
@@ -241,10 +256,10 @@ public class Main {
 	}
 
 	public int countAdjacentPixels(BufferedImage in, int x, int y) {
-		Set<PointXY> visited = new HashSet<PointXY>();
-		Stack<PointXY> todo = new Stack<PointXY>();
 		if ((in.getRGB(x, y) & 0xFF) > 128)
 			return 0;
+		Set<PointXY> visited = new HashSet<PointXY>();
+		Stack<PointXY> todo = new Stack<PointXY>();
 		todo.push(new PointXY(x, y, true));
 		int count = 0;
 		while (!todo.isEmpty()) {
@@ -252,16 +267,14 @@ public class Main {
 			PointXY p = todo.pop();
 			x = (int) p.get_x();
 			y = (int) p.get_y();
-			if (x + 1 < in.getWidth() && !contains(visited, new PointXY(x + 1, y, true))
-					&& (in.getRGB(x + 1, y) & 0xFF) < 128)
-				todo.push(new PointXY(x + 1, y, true));
-			if (x - 1 >= 0 && !contains(visited, new PointXY(x - 1, y, true)) && (in.getRGB(x - 1, y) & 0xFF) < 128)
-				todo.push(new PointXY(x - 1, y, true));
-			if (y + 1 < in.getHeight() && !contains(visited, new PointXY(x, y + 1, true))
-					&& (in.getRGB(x, y + 1) & 0xFF) < 128)
-				todo.push(new PointXY(x, y + 1, true));
-			if (y - 1 >= 0 && !contains(visited, new PointXY(x, y - 1, true)) && (in.getRGB(x, y - 1) & 0xFF) < 128)
-				todo.push(new PointXY(x, y - 1, true));
+			if (checkValid(x+1, y+1, in, visited)) todo.push(new PointXY(x+1, y+1, true));
+			if (checkValid(x+1, y-1, in, visited)) todo.push(new PointXY(x+1, y-1, true));
+			if (checkValid(x+1, y, in, visited)) todo.push(new PointXY(x+1, y, true));
+			if (checkValid(x-1, y+1, in, visited)) todo.push(new PointXY(x-1, y+1, true));
+			if (checkValid(x-1, y-1, in, visited)) todo.push(new PointXY(x-1, y-1, true));
+			if (checkValid(x-1, y, in, visited)) todo.push(new PointXY(x-1, y, true));
+			if (checkValid(x, y+1, in, visited)) todo.push(new PointXY(x, y+1, true));
+			if (checkValid(x, y-1, in, visited)) todo.push(new PointXY(x, y-1, true));
 			visited.add(p);
 		}
 
@@ -270,13 +283,14 @@ public class Main {
 
 	@SuppressWarnings("rawtypes")
 	public boolean contains(Set set, Object o) {
+		if(set == null) return false;
 		for(Object s : set) {
 			if(s.equals(o)) return true;
 		}
 		return false;
 	}
 
-	public int countAdjacentPixels(BufferedImage in, int x, int y, Set<PointXY> points) {
+	/*public int countAdjacentPixels(BufferedImage in, int x, int y, Set<PointXY> points) {
 		if (points == null)
 			points = new HashSet<PointXY>();
 		// UI.println(in.getRGB(x, y) & 0b11111111);
@@ -289,7 +303,7 @@ public class Main {
 		tot += y + 1 < in.getHeight() ? countAdjacentPixels(in, x, y + 1, points) : 0;
 		tot += y - 1 >= 0 ? countAdjacentPixels(in, x, y - 1, points) : 0;
 		return tot;
-	}
+	}*/
 
 	public void removeLine(BufferedImage in, int x, int y) {
 		/*
@@ -304,14 +318,14 @@ public class Main {
 			x = (int) p.get_x();
 			y = (int) p.get_y();
 			in.setRGB(x, y, 0xFFFFFFFF);
-			if (x + 1 < in.getWidth() && (in.getRGB(x + 1, y) & 0xFF) < 128)
-				todo.push(new PointXY(x + 1, y, true));
-			if (x - 1 >= 0 && (in.getRGB(x - 1, y) & 0xFF) < 128)
-				todo.push(new PointXY(x - 1, y, true));
-			if (y + 1 < in.getHeight() && (in.getRGB(x, y + 1) & 0xFF) < 128)
-				todo.push(new PointXY(x, y + 1, true));
-			if (y - 1 >= 0 && (in.getRGB(x, y - 1) & 0xFF) < 128)
-				todo.push(new PointXY(x, y - 1, true));
+			if (checkValid(x+1, y+1, in, null)) todo.push(new PointXY(x+1, y+1, true));
+			if (checkValid(x+1, y-1, in, null)) todo.push(new PointXY(x+1, y-1, true));
+			if (checkValid(x+1, y, in, null)) todo.push(new PointXY(x+1, y, true));
+			if (checkValid(x-1, y+1, in, null)) todo.push(new PointXY(x-1, y+1, true));
+			if (checkValid(x-1, y-1, in, null)) todo.push(new PointXY(x-1, y-1, true));
+			if (checkValid(x-1, y, in, null)) todo.push(new PointXY(x-1, y, true));
+			if (checkValid(x, y+1, in, null)) todo.push(new PointXY(x, y+1, true));
+			if (checkValid(x, y-1, in, null)) todo.push(new PointXY(x, y-1, true));
 		}
 	}
 	public void convertToLines(BufferedImage in) {
@@ -424,6 +438,7 @@ public class Main {
 
 	public void enter_path_xy() {
 		state = 2;
+		tool_path.setNumSteps(50);
 	}
 
 	public void inverse() {

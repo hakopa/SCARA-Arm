@@ -50,6 +50,10 @@ public class ToolPath
       pwm3_vector = new ArrayList<Integer>();
 
     }
+    
+    public void setNumSteps(int steps) {
+    	n_steps = steps;
+    }
 
     /**********CONVERT (X,Y) PATH into angles******************/
     public void convert_drawing_to_angles(Drawing drawing,Arm arm,String fname){
