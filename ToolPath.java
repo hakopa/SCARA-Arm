@@ -50,7 +50,7 @@ public class ToolPath
       pwm3_vector = new ArrayList<Integer>();
 
     }
-    
+
     public void setNumSteps(int steps) {
     	n_steps = steps;
     }
@@ -112,7 +112,7 @@ public class ToolPath
             arm.set_angles(theta1_vector.get(i),theta2_vector.get(i));
             pwm1_vector.add(arm.get_pwm1());
             pwm2_vector.add(arm.get_pwm2());
-            pwm3_vector.add(pen_vector.get(i) == 1 || !(i == theta1_vector.size()-1) ? 1100 : 1900);
+            pwm3_vector.add(pen_vector.get(i) == 1 ? 1700 : 2000);
         }
     }
 

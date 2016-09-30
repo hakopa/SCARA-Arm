@@ -39,8 +39,16 @@ public class Drawing
     public void add_point_to_path(double x, double y,boolean pen)
     {
         PointXY new_point = new PointXY(x,y,pen);
+        if(path.contains(new_point)) return;
+        if(!pen && !path.isEmpty()) {
+        	PointXY prev = path.get(path.size()-1);
+        	path.add(new PointXY(prev.get_x(), prev.get_y(), false));
+        }
         path.add(new_point);
-        UI.printf("Pioint added.x=%f y=%f pen=%b New path size - %d\n",
+        if(!pen) {
+        	path.add(new_point);
+        }
+        UI.printf("Point added.x=%f y=%f pen=%b New path size - %d\n",
               x,y,pen,path.size());
     }
 
@@ -63,10 +71,11 @@ public class Drawing
             PointXY p1 = get_drawing_point(i);
             if (path.get(i).get_pen()){
                 UI.setColor(Color.BLUE); //pen down part
+                UI.drawLine(p0.get_x(), p0.get_y(), p1.get_x(), p1.get_y());
             } else {
                 UI.setColor(Color.LIGHT_GRAY); // pen uo
             }
-            UI.drawLine(p0.get_x(), p0.get_y(), p1.get_x(), p1.get_y());
+            //UI.drawLine(p0.get_x(), p0.get_y(), p1.get_x(), p1.get_y());
 
         }
     }
@@ -78,6 +87,11 @@ public class Drawing
     //pen_down = false for last point
     public void path_raise_pen(){
         path.get(path.size()-1).set_pen(false);
+    }
+
+    public PointXY getLastPoint() {
+    	if(path.size() == 0) return null;
+    	return path.get(path.size()-1);
     }
 
     public PointXY get_path_last_point(){

@@ -36,7 +36,7 @@ package ToWebSite;
         }
         @Override
         public boolean equals(Object o) {
-        	return o instanceof PointXY && ((PointXY)o).get_x() == x && ((PointXY)o).get_y() == y;
+        	return o instanceof PointXY && (int)((PointXY)o).get_x() == (int)x && (int)((PointXY)o).get_y() == (int)y;
         }
 
     }

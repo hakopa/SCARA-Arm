@@ -32,15 +32,15 @@ public class Main {
 						// 2 - enter path. Each click adds point
 						// 3 - enter path pause. Click does not add the point to
 						// the path
-	
-	
+
+
 	double xOrigin = 300;
 	double yOrigin = 90;
 	double dx = 450;
 	double dy = 150;
-	
+
 	boolean removeNoise = false;
-	
+
 	/**      */
 	public Main() {
 		UI.initialise();
@@ -62,7 +62,7 @@ public class Main {
 		UI.addButton("Draw Image", this::pic);
 		UI.addSlider("Remove Noise", 0, 1, 0, (i) -> {removeNoise = i == 1;});
 		UI.addButton("Draw Image 2", this::pic2);
-		
+
 
 		// UI.addButton("Quit", UI::quit);
 		UI.setMouseMotionListener(this::doMouse);
@@ -137,14 +137,15 @@ public class Main {
 					}
 					if(shouldPenBeDown(bi, x, y) != penDown) {
 						penDown = !penDown;
-						drawing.add_point_to_path(xOrigin+x*scale, yOrigin+y*scale, !penDown);
+						if(penDown) drawing.add_point_to_path(xOrigin+x*scale, yOrigin+y*scale, !penDown);
 					}
+					if(penDown) drawing.add_point_to_path(xOrigin+x*scale, yOrigin+y*scale, penDown);
 					out.setRGB(x, y, penDown ? 0x0 : 0xFFFFFF);
 				}
 			}
 			UI.clearGraphics();
 			UI.drawImage(out, 0, 0);
-			tool_path.setNumSteps(50);
+			tool_path.setNumSteps(1);
 			int points = drawing.get_drawing_size();
 			UI.println("Drawn " + (points-steps) + "points");
 		} catch (IOException e) {
@@ -154,8 +155,13 @@ public class Main {
 	}
 
 	public boolean shouldPenBeDown(BufferedImage in, int x, int y) {
-		Color c = new Color(in.getRGB(x, y));
-		return (c.getRed()+c.getGreen()+c.getBlue())/3 < 128;
+		int rgb = in.getRGB(x, y);
+		int r = (rgb >> 16) & 0xFF;
+		int g = (rgb >> 8) & 0xFF;
+		int b = rgb & 0xFF;
+		return (r+g+b)/3 < 128;
+		/*Color c = new Color(in.getRGB(x, y));
+		return (c.getRed()+c.getGreen()+c.getBlue())/3 < 128;*/
 	}
 
 	public void pic() {
@@ -264,6 +270,7 @@ public class Main {
 		int count = 0;
 		while (!todo.isEmpty()) {
 			count++;
+			if(count > 10) return count;
 			PointXY p = todo.pop();
 			x = (int) p.get_x();
 			y = (int) p.get_y();
@@ -337,30 +344,70 @@ public class Main {
 		double s1 = (dx-xOrigin)/in.getWidth();
 		double s2 = (dy-yOrigin)/in.getHeight();
 		double scale = s1<s2 ? s1 : s2;
+		double prevX = 0;
+		double prevY = 0;
 
 		Set<PointXY> visited = new HashSet<PointXY>();
-		for(int x = 0; x < in.getWidth(); x++) {
-			for(int y = 0; y < in.getHeight(); y++) {
-				PointXY pixel = new PointXY(x, y, false);
-				if((in.getRGB(x, y) & 0xFF) < 128 && !contains(visited, pixel)) {
-					Stack<PointXY> todo = new Stack<PointXY>();
-					todo.add(pixel);
-					while(!todo.isEmpty()) {
-						PointXY p = todo.pop();
+		for(int y = 0; y < in.getHeight(); y++) {
+			for(int x = 0; x < in.getWidth(); x++) {
+				PointXY p = new PointXY(x, y, false);
+
+				if((in.getRGB(x, y) & 0xFF) < 128 && !contains(visited, p)) {
+					visited.add(p);
+					//PointXY p = pixel;
+					while(true) {
 						int i = (int)p.get_x();
 						int j = (int)p.get_y();
-							 if(checkValid(i+1, j+1, in, visited)) todo.push(new PointXY(i+1, j+1, true));
-						else if(checkValid(i+1, j+0, in, visited)) todo.push(new PointXY(i+1, j+0, true));
-						else if(checkValid(i+1, j-1, in, visited)) todo.push(new PointXY(i+1, j-1, true));
-						else if(checkValid(i-1, j+1, in, visited)) todo.push(new PointXY(i-1, j+1, true));
-						else if(checkValid(i-1, j+0, in, visited)) todo.push(new PointXY(i-1, j+0, true));
-						else if(checkValid(i-1, j-1, in, visited)) todo.push(new PointXY(i-1, j-1, true));
-						else if(checkValid(i+0, j+1, in, visited)) todo.push(new PointXY(i+0, j+1, true));
-						else if(checkValid(i+0, j-1, in, visited)) todo.push(new PointXY(i+0, j-1, true));
-						drawing.add_point_to_path(xOrigin+p.get_x()*scale, yOrigin+p.get_y()*scale, p.get_pen());
-						visited.add(p);
+
+						drawing.add_point_to_path(xOrigin*0+p.get_x()*scale/scale, yOrigin*0+p.get_y()*scale/scale, p.get_pen());
+
+						if(checkValid(i+1, j+1, in, visited)) {
+							p = (new PointXY(i+1, j+1, true));
+							visitSurroundings(i, j, in, visited);
+						}
+						else if(checkValid(i+1, j+0, in, visited)) {
+							p = (new PointXY(i+1, j+0, true));
+							visitSurroundings(i, j, in, visited);
+						}
+						else if(checkValid(i+1, j-1, in, visited)) {
+							p = (new PointXY(i+1, j-1, true));
+							visitSurroundings(i, j, in, visited);
+						}
+						else if(checkValid(i-1, j+1, in, visited)) {
+							p = (new PointXY(i-1, j+1, true));
+							visitSurroundings(i, j, in, visited);
+						}
+						else if(checkValid(i-1, j+0, in, visited)) {
+							p = (new PointXY(i-1, j+0, true));
+							visitSurroundings(i, j, in, visited);
+						}
+						else if(checkValid(i-1, j-1, in, visited)) {
+							p = (new PointXY(i-1, j-1, true));
+							visitSurroundings(i, j, in, visited);
+						}
+						else if(checkValid(i+0, j+1, in, visited)) {
+							p = (new PointXY(i+0, j+1, true));
+							visitSurroundings(i, j, in, visited);
+						}
+						else if(checkValid(i+0, j-1, in, visited)) {
+							p = (new PointXY(i+0, j-1, true));
+							visitSurroundings(i, j, in, visited);
+						}
+						else {
+							visitSurroundings(i, j, in, visited);
+							break;
+						}
 					}
 				}
+				visited.add(p);
+			}
+		}
+	}
+
+	public void visitSurroundings(int x, int y, BufferedImage in, Set<PointXY> set) {
+		for(int i = x-1; i < x+1; i++) {
+			for(int j = y-1; j < y+1; j++) {
+				if(checkValid(i, j, in, set)) set.add(new PointXY(x, y, true));
 			}
 		}
 	}
